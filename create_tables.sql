@@ -4,8 +4,10 @@ CREATE TABLE Individuo (
     Nome VARCHAR(64) NOT NULL,
     DataNasc DATE NOT NULL,
     
-    CHECK (length(RG) >= 9),
-   	CHECK (length(CPF) >= 11),
+    CONSTRAINT CK_Individuo_RG CHECK (length(RG) >= 9),
+   	CONSTRAINT CK_Individuo_CPF CHECK (length(CPF) >= 11),
+   	CONSTRAINT CK_Individuo_ANO CHECK
+   		(DataNasc BETWEEN '1900-01-01' AND '2006-01-01'),
     CONSTRAINT PK_Individuo PRIMARY KEY (CPF),
     CONSTRAINT UN_Individuo_RG UNIQUE (RG)
 );
@@ -16,7 +18,11 @@ CREATE TABLE ProcessoJuridico(
 	DataInicio DATE NOT NULL,
 	DataTermino DATE DEFAULT NULL,
 
-	CHECK (DataTermino IS NULL OR DataTermino > DataInicio),
+	CONSTRAINT CK_ProcessoJuridico_Data CHECK
+		(DataTermino IS NULL OR DataTermino > DataInicio),
+	CONSTRAINT CK_ProcessoJuridico_Procedente CHECK 
+		(Procedente IS NULL AND DataTermino IS NULL
+		OR Procedente IS NOT NULL AND DataTermino IS NOT NULL),
 	CONSTRAINT PK_ProcessoJuridico PRIMARY KEY (ProcessoID)
 );
 
@@ -34,17 +40,15 @@ CREATE TABLE Individuo_Processos(
 );
 
 CREATE TABLE Partido (
-	PartidoID SERIAL,
+	Sigla VARCHAR(8),
 	Nome VARCHAR(64) NOT NULL,
 	Numero INTEGER NOT NULL,
-	Sigla VARCHAR(10) NOT NULL,
 	QntMembros INTEGER NOT NULL,
 	ProgramaSaude VARCHAR(2048) NOT NULL,
 	ProgramaEducacao VARCHAR(2048) NOT NULL,
 	ProgramaEconomia VARCHAR(2048) NOT NULL,
 	
-	CONSTRAINT PK_Partido PRIMARY KEY (PartidoID),
-	
+	CONSTRAINT PK_Partido PRIMARY KEY (Sigla),
 	CONSTRAINT UN_Partido_Nome UNIQUE (Nome),
 	CONSTRAINT UN_Partido_Numero UNIQUE (Numero),
 	CONSTRAINT UN_Partido_Sigla UNIQUE (Sigla)
@@ -53,15 +57,15 @@ CREATE TABLE Partido (
 CREATE TABLE Candidato(
 	CPF VARCHAR(11),
 	Numero INTEGER NOT NULL,
-	PartidoID SERIAL NOT NULL,
+	Partido_Sigla VARCHAR(8) NOT NULL,
 	
 	CONSTRAINT PK_Candidato PRIMARY KEY (CPF),
 	CONSTRAINT UN_Candidato_Numero UNIQUE (Numero),
 	CONSTRAINT FK_Candidato_CPF FOREIGN KEY (CPF)
 		REFERENCES Individuo (CPF)
 			ON DELETE CASCADE ON UPDATE CASCADE,
-	CONSTRAINT FK_Candidato_PartidoID FOREIGN KEY (PartidoID)
-		REFERENCES Partido (PartidoID)
+	CONSTRAINT FK_Candidato_PartidoSigla FOREIGN KEY (Partido_Sigla)
+		REFERENCES Partido (Sigla)
 			ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -91,7 +95,7 @@ CREATE TABLE Candidatura(
 	PleitoID SERIAL NOT NULL,
 	Eleito BOOL DEFAULT NULL,
 	
-	CHECK (ANO >= 2000 AND ANO <= 2025),
+	CONSTRAINT CK_Candidatura_Ano CHECK (ANO >= 2000 AND ANO <= 2025),
 	CONSTRAINT PK_Candidatura PRIMARY KEY (CandidaturaID),
 	CONSTRAINT UN_Candidatura UNIQUE (CPF,ANO),
 	CONSTRAINT FK_Candidatura_CPF FOREIGN KEY (CPF)
@@ -112,7 +116,7 @@ CREATE TABLE Empresa(
 	CNPJ VARCHAR(14),
 	Nome VARCHAR(128) NOT NULL,
 	
-	CHECK (length(CNPJ) >= 14),
+	CONSTRAINT CK_Empresa_CNPJ CHECK (length(CNPJ) >= 14),
 	CONSTRAINT PK_Empresa PRIMARY KEY (CNPJ),
 	CONSTRAINT UN_Empresa UNIQUE (Nome)
 );
@@ -145,3 +149,6 @@ CREATE TABLE DoacaoDeCampanha(
 		REFERENCES Candidatura(CandidaturaID)
 			ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+
+
