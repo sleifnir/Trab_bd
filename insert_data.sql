@@ -278,7 +278,8 @@ INSERT INTO Pleito (Votos) values
 (4600),
 (4750),
 (4850),
-(4950);
+(4950),
+(null);
 
 insert into candidatura (cpf, ano, cargoid, vice, pleitoid, eleito) values
 ('12345678901', 2022, 1, '23456789012', 1, false),
@@ -309,6 +310,12 @@ insert into candidatura (cpf, ano, cargoid, vice, pleitoid, eleito) values
 ('62234567890', 2012, 7,null , 26, true),
 ('63234567890', 2012, 8, '78234567890', 27, true),
 ('67234567890', 2012, 10,null , 28, true);
+
+
+--Deve dar erro nesse insert
+-- insert into candidatura (cpf, ano, cargoid, vice, pleitoid, eleito) values
+--('86234567890', 2012, 10, null , 41, true);
+--
 
 INSERT INTO Empresa (CNPJ, Nome) VALUES
 ('12345678000100', 'Tech Solutions Ltda'),
@@ -380,6 +387,23 @@ INSERT INTO DoacaoDeCampanha (CPF, CandidaturaID, DataDoacao, Valor) VALUES
 ('86234567890', 18, '2016-06-22', 4750.00),
 ('85234567890', 19, '2016-07-25', 5000.00),
 ('84234567890', 20, '2016-08-27', 5250.00);
+
+
+insert into equipedeapoio (ano, qntmembros, candidaturaid) values
+(2022, 0, 1),
+(2022, 0, 2),
+(2020, 0, 11),
+(2016, 0, 17);
+
+
+insert into apoiador_equipe (cpf, ano, equipeid) values
+('79234567890', 2022, 1),
+('80234567890', 2022, 1),
+('81234567890', 2022, 2),
+('83234567890', 2020, 3),
+('84234567890', 2020, 3),
+('86234567890', 2016, 4),
+('87234567890', 2016, 4);
 
 
 
