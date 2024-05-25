@@ -251,7 +251,7 @@ def remove_data(table, fields, values):
         cursor = conn.cursor()
 
         # Construct the SQL statement
-        query = f"DELETE FROM teste.{table} WHERE "
+        query = f"DELETE FROM {table} WHERE "
         conditions = []
         for field, value in zip(fields, values):
             conditions.append(f"{field} = '{value}'")
@@ -280,7 +280,7 @@ def list_all_data(table):
         cursor = conn.cursor()
 
         # Construct the SQL statement
-        query = f"SELECT * FROM teste.{table}"
+        query = f"SELECT * FROM {table}"
 
         print(f"Executing query: {query}")
 
@@ -314,7 +314,7 @@ def list_data(table, fields, values):
         cursor = conn.cursor()
 
         # Construct the SQL statement
-        query = f"SELECT * FROM teste.{table} WHERE "
+        query = f"SELECT * FROM {table} WHERE "
         conditions = []
         for field, value in zip(fields, values):
             conditions.append(f"{field} = '{value}'")
