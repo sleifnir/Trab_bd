@@ -1,25 +1,142 @@
 import tkinter as tk
 from tkinter import ttk
+import psycopg2
+
+# MODIFICA CONEXÂO PARA SEU BANCO
+conn = psycopg2.connect(
+    dbname="projeto",
+    user="admin",
+    password="admin123",
+    host="localhost",
+    port="5432",
+)
 
 
 # Function to show dropdown options
 def show_dropdown(option):
+    clear_results()  # Clear previous results when a new option is selected
+
     for widget in option_frame.winfo_children():
         widget.destroy()
 
-    label = tk.Label(option_frame, text="Select an option:")
-    label.pack(side="left")
-
-    options = []
     if option == "Option 1":
-        options = ["Ano", "Nome", "Cargo"]
-    elif option == "Option 2":
-        options = ["Option 2-1", "Option 2-2", "Option 2-3"]
-    elif option == "Option 3":
-        options = ["Option 3-1", "Option 3-2", "Option 3-3"]
+        suboptions = ["ano", "nome", "cargo"]
+        check_vars = {}
+        entry_vars = {}
 
-    selector = ttk.Combobox(option_frame, values=options)
-    selector.pack(side="left")
+        # Create checkboxes for suboptions
+        for suboption in suboptions:
+            var = tk.BooleanVar()
+            check_vars[suboption] = var
+            checkbox = tk.Checkbutton(
+                option_frame,
+                text=suboption.capitalize(),
+                variable=var,
+                command=lambda so=suboption: toggle_entry(so),
+            )
+            checkbox.pack(anchor="w")
+
+            # Create entry widgets for each suboption (initially hidden)
+            entry_vars[suboption] = []
+            entry_frame = tk.Frame(option_frame)
+            entry_frame.pack(anchor="w", padx=20)
+            entry_vars[suboption].append(entry_frame)
+
+        # Function to toggle entry fields
+        def toggle_entry(suboption):
+            if check_vars[suboption].get():
+                add_entry(suboption)
+            else:
+                for entry in entry_vars[suboption]:
+                    entry.destroy()
+                entry_vars[suboption] = []
+
+        # Function to add entry field
+        def add_entry(suboption):
+            entry_frame = tk.Frame(option_frame)
+            label = tk.Label(
+                entry_frame, text=f"Enter {suboption} value(s) (separated by commas):"
+            )
+            entry = tk.Entry(entry_frame)
+            entry_frame.pack(anchor="w", padx=20)
+            label.pack(side="left")
+            entry.pack(side="left")
+            entry_vars[suboption].append(entry_frame)
+
+        # Add button to save and print selected options and their values
+        def save_and_print_selections():
+            selections = {}
+            for suboption in suboptions:
+                if check_vars[suboption].get():
+                    values = []
+                    for frame in entry_vars[suboption]:
+                        for widget in frame.winfo_children():
+                            if isinstance(widget, tk.Entry):
+                                values += [
+                                    value.strip() for value in widget.get().split(",")
+                                ]
+                    selections[suboption] = values
+
+            # Print selections to terminal
+            print(f"Selected options and values: {selections}")
+
+            # Query the database with the selected options and values
+            query_database(selections)
+
+        save_button = tk.Button(
+            option_frame, text="Save Selections", command=save_and_print_selections
+        )
+        save_button.pack(anchor="w")
+
+    elif option == "Option 2" or option == "Option 3":
+        options = [f"{option}-{i}" for i in range(1, 4)]
+        selector = ttk.Combobox(option_frame, values=options)
+        selector.pack(side="left")
+
+    elif option == "Option 4":
+        # Add radio buttons for Remove or List options
+        operation_var = tk.StringVar()
+        remove_radio = tk.Radiobutton(
+            option_frame, text="Remove", variable=operation_var, value="remove"
+        )
+        list_radio = tk.Radiobutton(
+            option_frame, text="List", variable=operation_var, value="list"
+        )
+        remove_radio.pack(anchor="w")
+        list_radio.pack(anchor="w")
+
+        # Add entry fields for table name, fields, and values
+        table_entry = tk.Entry(option_frame)
+        table_entry_label = tk.Label(option_frame, text="Enter table name:")
+        table_entry_label.pack(anchor="w")
+        table_entry.pack(anchor="w")
+
+        fields_entry = tk.Entry(option_frame)
+        fields_entry_label = tk.Label(option_frame, text="Enter fields:")
+        fields_entry_label.pack(anchor="w")
+        fields_entry.pack(anchor="w")
+
+        values_entry = tk.Entry(option_frame)
+        values_entry_label = tk.Label(option_frame, text="Enter values:")
+        values_entry_label.pack(anchor="w")
+        values_entry.pack(anchor="w")
+
+        # Function to execute Remove or List operation
+        def execute_operation():
+            operation = operation_var.get()
+            table = table_entry.get()
+            fields = fields_entry.get().split(",")
+            values = values_entry.get().split(",")
+
+            if operation == "remove":
+                remove_data(table, fields, values)
+            elif operation == "list":
+                list_data(table, fields, values)
+
+        execute_button = tk.Button(
+            option_frame, text="Execute", command=execute_operation
+        )
+        execute_button.pack(anchor="w")
 
 
 # Function to handle menu selection
@@ -27,25 +144,147 @@ def menu_selected(option):
     show_dropdown(option)
 
 
-# Create main application window
-app = tk.Tk()
-app.title("Menu App with Dropdown")
+# Function to toggle fullscreen mode
+def toggle_fullscreen(event=None):
+    is_fullscreen = not app.attributes("-fullscreen")
+    app.attributes("-fullscreen", is_fullscreen)
+    if not is_fullscreen:
+        app.geometry("800x600")  # Default size when not fullscreen
 
-# Create a menu
-menu_bar = tk.Menu(app)
-app.config(menu=menu_bar)
 
-# Add menu options
-file_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label="Options", menu=file_menu)
+# Function to clear previous results
+def clear_results():
+    for widget in result_frame.winfo_children():
+        widget.destroy()
 
-file_menu.add_command(label="Option 1", command=lambda: menu_selected("Option 1"))
-file_menu.add_command(label="Option 2", command=lambda: menu_selected("Option 2"))
-file_menu.add_command(label="Option 3", command=lambda: menu_selected("Option 3"))
 
-# Frame to show dropdown options
-option_frame = tk.Frame(app)
-option_frame.pack(pady=20)
+# Function to query the database
+def query_database(selections):
+    try:
+        # Create a cursor object
+        cursor = conn.cursor()
 
-# Run the application
-app.mainloop()
+        # Example query template
+        query = "SELECT * FROM your_table WHERE "
+
+        conditions = []
+        if "ano" in selections:
+            conditions.append("ano IN (%s)" % ",".join(selections["ano"]))
+        if "nome" in selections:
+            conditions.append(
+                "nome IN (%s)" % ",".join("'%s'" % name for name in selections["nome"])
+            )
+        if "cargo" in selections:
+            conditions.append(
+                "cargo IN (%s)"
+                % ",".join("'%s'" % cargo for cargo in selections["cargo"])
+            )
+
+        query += " AND ".join(conditions)
+
+        print(f"Executing query: {query}")
+
+        # Execute the query
+        cursor.execute(query)
+
+        # Fetch all results
+        results = cursor.fetchall()
+
+        # Print results to the console
+        print(f"Query Results: {results}")
+
+        # Display results in the result frame
+        result_label = tk.Label(result_frame, text="Query Results:")
+        result_label.pack(anchor="w")
+        for row in results:
+            result_text = ", ".join(map(str, row))
+            result_label = tk.Label(result_frame, text=result_text)
+            result_label.pack(anchor="w")
+
+        # Close the cursor and connection
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+def remove_data(table, fields, values): ...
+
+
+# TODO Consertar conexão com o banco, query está retornando que a relação n existe
+def list_data(table, fields, values):
+    try:
+
+        # Create a cursor object
+        cursor = conn.cursor()
+        print(cursor)
+        print(conn)
+        # Construct the SQL statement
+        query = f"SELECT * FROM {table} WHERE "
+        conditions = []
+        for field, value in zip(fields, values):
+            conditions.append(f"{field} = '{value}'")
+        query += " AND ".join(conditions)
+        # query += ";"
+        print(f"Executing query: {query}")
+        # Execute the query
+        cursor.execute(query)
+
+        # Fetch all results
+        results = cursor.fetchall()
+
+        # Print results to the console
+        print(f"Query Results: {results}")
+
+        # Display results in the result frame
+        result_label = tk.Label(result_frame, text="Query Results:")
+        result_label.pack(anchor="w")
+        for row in results:
+            result_text = ", ".join(map(str, row))
+            result_label = tk.Label(result_frame, text=result_text)
+            result_label.pack(anchor="w")
+
+        # Close the cursor and connection
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+if __name__ == "__main__":
+    # Create main application window
+    app = tk.Tk()
+    app.title("Menu App with Dropdown")
+    app.attributes("-fullscreen", True)
+
+    # Bind the Escape key to exit fullscreen
+    app.bind("<Escape>", toggle_fullscreen)
+
+    # Create a menu
+    menu_bar = tk.Menu(app)
+    app.config(menu=menu_bar)
+
+    # Add menu options
+    file_menu = tk.Menu(menu_bar, tearoff=0)
+    menu_bar.add_cascade(label="Options", menu=file_menu)
+
+    # Option 1 -> opção 2 do tidia
+    # Option 4 -> opção 1 do tidia
+    # TODO renomear opção para os modos corretos
+    file_menu.add_command(label="Option 1", command=lambda: menu_selected("Option 1"))
+    file_menu.add_command(label="Option 2", command=lambda: menu_selected("Option 2"))
+    file_menu.add_command(label="Option 3", command=lambda: menu_selected("Option 3"))
+    file_menu.add_command(label="Option 4", command=lambda: menu_selected("Option 4"))
+
+    # Frame to show dropdown options
+    option_frame = tk.Frame(app)
+    option_frame.pack(pady=20)
+
+    # Frame to show saved selections
+    result_frame = tk.Frame(app)
+    result_frame.pack(pady=20)
+
+    # Run the application
+    app.mainloop()
