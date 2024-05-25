@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import psycopg2
 
-# MODIFICA CONEXÂO PARA SEU BANCO
+# MODIFICA CONEXÃO PARA SEU BANCO
 conn = psycopg2.connect(
     dbname="projeto",
     user="admin",
@@ -84,7 +84,9 @@ def show_dropdown(option):
             query_database(selections)
 
         save_button = tk.Button(
-            option_frame, text="Save Selections", command=save_and_print_selections
+            option_frame,
+            text="Save Selections",
+            command=lambda: [clear_results(), save_and_print_selections()],
         )
         save_button.pack(anchor="w")
 
@@ -116,6 +118,8 @@ def show_dropdown(option):
         table_entry_label.pack(anchor="w")
         table_entry.pack(anchor="w")
 
+        # Checkbox for selecting all data
+
         fields_entry = tk.Entry(option_frame)
         fields_entry_label = tk.Label(option_frame, text="Enter fields:")
         fields_entry_label.pack(anchor="w")
@@ -126,8 +130,17 @@ def show_dropdown(option):
         values_entry_label.pack(anchor="w")
         values_entry.pack(anchor="w")
 
+        all_data_var = tk.BooleanVar()
+        all_data_checkbox = tk.Checkbutton(
+            option_frame,
+            text="Todos os dados",
+            variable=all_data_var,
+        )
+        all_data_checkbox.pack(anchor="w")
+
         # Function to execute Remove or List operation
         def execute_operation():
+            clear_results()
             operation = operation_var.get()
             table = table_entry.get()
             fields = fields_entry.get().split(",")
@@ -136,12 +149,18 @@ def show_dropdown(option):
             if operation == "remove":
                 remove_data(table, fields, values)
             elif operation == "list":
-                list_data(table, fields, values)
+                if all_data_var.get():
+                    list_all_data(table)
+                else:
+                    list_data(table, fields, values)
 
         execute_button = tk.Button(
             option_frame, text="Execute", command=execute_operation
         )
         execute_button.pack(anchor="w")
+
+    elif option == "Sair":
+        sair()
 
 
 # Function to handle menu selection
@@ -164,6 +183,19 @@ def clear_results():
 
 
 # Function to query the database
+def sair():
+    try:
+        # Close the database connection
+        if conn:
+            conn.close()
+            print("Database connection closed.")
+    except Exception as e:
+        print(f"Error closing the database connection: {e}")
+    finally:
+        # Close the application
+        app.quit()
+
+
 def query_database(selections):
     try:
         # Create a cursor object
@@ -208,31 +240,88 @@ def query_database(selections):
 
         # Close the cursor and connection
         cursor.close()
-        conn.close()
 
     except Exception as e:
         print(f"Error querying the database: {e}")
 
 
-def remove_data(table, fields, values): ...
-
-
-# TODO Consertar conexão com o banco, query está retornando que a relação n existe
-def list_data(table, fields, values):
+def remove_data(table, fields, values):
     try:
-
         # Create a cursor object
         cursor = conn.cursor()
-        print(cursor)
-        print(conn)
+
         # Construct the SQL statement
-        query = f"SELECT * FROM {table} WHERE "
+        query = f"DELETE FROM teste.{table} WHERE "
         conditions = []
         for field, value in zip(fields, values):
             conditions.append(f"{field} = '{value}'")
         query += " AND ".join(conditions)
-        # query += ";"
+
         print(f"Executing query: {query}")
+
+        # Execute the query
+        cursor.execute(query)
+
+        # Commit the transaction
+        conn.commit()
+
+        print("Data removed successfully.")
+
+        # Close the cursor
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error removing data from the database: {e}")
+
+
+def list_all_data(table):
+    try:
+        # Create a cursor object
+        cursor = conn.cursor()
+
+        # Construct the SQL statement
+        query = f"SELECT * FROM teste.{table}"
+
+        print(f"Executing query: {query}")
+
+        # Execute the query
+        cursor.execute(query)
+
+        # Fetch all results
+        results = cursor.fetchall()
+
+        # Print results to the console
+        print(f"Query Results: {results}")
+
+        # Display results in the result frame
+        result_label = tk.Label(result_frame, text="Query Results:")
+        result_label.pack(anchor="w")
+        for row in results:
+            result_text = ", ".join(map(str, row))
+            result_label = tk.Label(result_frame, text=result_text)
+            result_label.pack(anchor="w")
+
+        # Close the cursor
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+def list_data(table, fields, values):
+    try:
+        # Create a cursor object
+        cursor = conn.cursor()
+
+        # Construct the SQL statement
+        query = f"SELECT * FROM teste.{table} WHERE "
+        conditions = []
+        for field, value in zip(fields, values):
+            conditions.append(f"{field} = '{value}'")
+        query += " AND ".join(conditions)
+
+        print(f"Executing query: {query}")
+
         # Execute the query
         cursor.execute(query)
 
@@ -252,7 +341,6 @@ def list_data(table, fields, values):
 
         # Close the cursor and connection
         cursor.close()
-        conn.close()
 
     except Exception as e:
         print(f"Error querying the database: {e}")
@@ -289,14 +377,32 @@ if __name__ == "__main__":
     file_menu.add_command(
         label="Busca ou remoção", command=lambda: menu_selected("Busca ou remoção")
     )
+    file_menu.add_command(label="Sair", command=lambda: menu_selected("Sair"))
 
     # Frame to show dropdown options
     option_frame = tk.Frame(app)
     option_frame.pack(pady=20)
 
-    # Frame to show saved selections
-    result_frame = tk.Frame(app)
-    result_frame.pack(pady=20)
+    # Frame to show saved selections with scrollbar
+    result_frame_container = tk.Frame(app)
+    result_frame_container.pack(pady=20)
+
+    result_canvas = tk.Canvas(result_frame_container)
+    result_scrollbar = ttk.Scrollbar(
+        result_frame_container, orient="vertical", command=result_canvas.yview
+    )
+    result_frame = tk.Frame(result_canvas)
+
+    result_frame.bind(
+        "<Configure>",
+        lambda e: result_canvas.configure(scrollregion=result_canvas.bbox("all")),
+    )
+
+    result_canvas.create_window((0, 0), window=result_frame, anchor="nw")
+    result_canvas.configure(yscrollcommand=result_scrollbar.set)
+
+    result_canvas.pack(side="left", fill="both", expand=True)
+    result_scrollbar.pack(side="right", fill="y")
 
     # Run the application
     app.mainloop()
