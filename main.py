@@ -19,7 +19,7 @@ def show_dropdown(option):
     for widget in option_frame.winfo_children():
         widget.destroy()
 
-    if option == "Option 1":
+    if option == "Listagem Candidatura":
         suboptions = ["ano", "nome", "cargo"]
         check_vars = {}
         entry_vars = {}
@@ -88,12 +88,17 @@ def show_dropdown(option):
         )
         save_button.pack(anchor="w")
 
-    elif option == "Option 2" or option == "Option 3":
+    elif option == "Listar ficha limpa":
         options = [f"{option}-{i}" for i in range(1, 4)]
         selector = ttk.Combobox(option_frame, values=options)
         selector.pack(side="left")
 
-    elif option == "Option 4":
+    elif option == "Geração de relatórios":
+        options = [f"{option}-{i}" for i in range(1, 4)]
+        selector = ttk.Combobox(option_frame, values=options)
+        selector.pack(side="left")
+
+    elif option == "Busca ou remoção":
         # Add radio buttons for Remove or List options
         operation_var = tk.StringVar()
         remove_radio = tk.Radiobutton(
@@ -268,15 +273,22 @@ if __name__ == "__main__":
 
     # Add menu options
     file_menu = tk.Menu(menu_bar, tearoff=0)
-    menu_bar.add_cascade(label="Options", menu=file_menu)
+    menu_bar.add_cascade(label="Funcionalidades", menu=file_menu)
 
-    # Option 1 -> opção 2 do tidia
-    # Option 4 -> opção 1 do tidia
-    # TODO renomear opção para os modos corretos
-    file_menu.add_command(label="Option 1", command=lambda: menu_selected("Option 1"))
-    file_menu.add_command(label="Option 2", command=lambda: menu_selected("Option 2"))
-    file_menu.add_command(label="Option 3", command=lambda: menu_selected("Option 3"))
-    file_menu.add_command(label="Option 4", command=lambda: menu_selected("Option 4"))
+    file_menu.add_command(
+        label="Listagem Candidatura",
+        command=lambda: menu_selected("Listagem Candidatura"),
+    )
+    file_menu.add_command(
+        label="Geração de relatórios",
+        command=lambda: menu_selected("Geração de relatórios"),
+    )
+    file_menu.add_command(
+        label="Listar ficha limpa", command=lambda: menu_selected("Listar ficha limpa")
+    )
+    file_menu.add_command(
+        label="Busca ou remoção", command=lambda: menu_selected("Busca ou remoção")
+    )
 
     # Frame to show dropdown options
     option_frame = tk.Frame(app)
