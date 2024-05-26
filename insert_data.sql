@@ -311,6 +311,8 @@ insert into candidatura (cpf, ano, cargoid, vice, pleitoid, eleito) values
 ('63234567890', 2012, 8, '78234567890', 27, true),
 ('67234567890', 2012, 10,null , 28, true);
 
+SELECT * FROM candidatura c RIGHT JOIN cargo c2 ON c.cargoid = c2.cargoid WHERE c2.nome = 'Presidente'
+
 
 --Deve dar erro nesse insert
 -- insert into candidatura (cpf, ano, cargoid, vice, pleitoid, eleito) values
@@ -393,7 +395,17 @@ insert into equipedeapoio (ano, qntmembros, candidaturaid) values
 (2022, 0, 1),
 (2022, 0, 2),
 (2020, 0, 11),
-(2016, 0, 17);
+(2016, 0, 17)
+(2022, 5, 5),
+(2022, 8, 6),
+(2020, 7, 7),
+(2016, 4, 8),
+(2018, 6, 9),
+(2020, 9, 10),
+(2019, 3, 12),
+(2021, 5, 13),
+(2017, 4, 14),
+(2021, 8, 15);
 
 
 insert into apoiador_equipe (cpf, ano, equipeid) values
@@ -405,6 +417,77 @@ insert into apoiador_equipe (cpf, ano, equipeid) values
 ('86234567890', 2016, 4),
 ('87234567890', 2016, 4);
 
+INSERT INTO Apoiador_Equipe (CPF, ANO, EquipeID) VALUES
+('12345678901', 2022, 1),
+('34567890123', 2022, 2),
+('45678901234', 2023, 3),
+('67890123456', 2023, 4),
+('78901234567', 2024, 5),
+('90123456789', 2024, 6),
+('01234567890', 2025, 7),
+('12234567890', 2025, 8),
+('13234567890', 2022, 9),
+('15234567890', 2023, 10),
+('16234567890', 2024, 11),
+('18234567890', 2025, 12),
+('19234567890', 2022, 13),
+('21234567890', 2023, 14),
+('24234567890', 2024, 1),
+('25234567890', 2025, 2),
+('27234567890', 2022, 3),
+('28234567890', 2023, 4),
+('31234567890', 2024, 5),
+('33234567890', 2025, 6),
+('34234567890', 2022, 7),
+('36234567890', 2023, 8),
+('37234567890', 2024, 9),
+('40234567890', 2025, 10),
+('42234567890', 2022, 11),
+('43234567890', 2023, 12),
+('45234567890', 2024, 13),
+('46234567890', 2025, 14),
+('49234567890', 2022, 1),
+('50234567890', 2023, 2),
+('51234567890', 2024, 3),
+('53234567890', 2025, 4),
+('54234567890', 2022, 5),
+('57234567890', 2023, 6),
+('58234567890', 2024, 7),
+('61234567890', 2025, 8),
+('62234567890', 2022, 9),
+('63234567890', 2023, 10),
+('65234567890', 2024, 11),
+('67234567890', 2025, 12),
+('69234567890', 2022, 13),
+('71234567890', 2023, 14),
+('73234567890', 2024, 1),
+('75234567890', 2025, 2),
+('77234567890', 2022, 3),
+('79234567890', 2023, 4),
+('81234567890', 2024, 5),
+('83234567890', 2025, 6),
+('85234567890', 2022, 7),
+('87234567890', 2023, 8);
+
+-- Consulta interessante: todas os nomes dos apoiadores de equipe seguidos do
+-- candidato que eles apoiam e do cargo que ele está concorrendo
+--SELECT i.nome, i.cpf, e.equipeid, e.ano, e.qntmembros, i2.nome, c2.nome 
+--	FROM apoiador_equipe ae JOIN equipedeapoio e ON ae.equipeid = e.equipeid
+--	JOIN individuo i ON ae.cpf = i.cpf JOIN candidatura c ON c.candidaturaid = e.candidaturaid
+--	JOIN individuo i2 ON c.cpf = i2.cpf JOIN cargo c2 ON c.cargoid = c2.cargoid ORDER BY e.equipeid
+
+-- testes que eu estava fazendo no trigger de atualizar qnt de membros das equipes:
+
+--INSERT INTO apoiador_equipe VALUES ('90123456789', 2016, 4);
+--DELETE FROM apoiador_equipe WHERE CPF='90123456789'
+--
+--INSERT INTO apoiador_equipe VALUES ('12345678901', 2016, 4);
+--DELETE FROM apoiador_equipe WHERE CPF='12345678901'
+--
+--UPDATE apoiador_equipe SET equipeid = 1 WHERE CPF = '80234567890'
+--
+--SELECT * FROM equipedeapoio e NATURAL JOIN apoiador_equipe ae
+--	NATURAL JOIN individuo i WHERE ae.equipeid <= 2
 
 
 -- buscar individos ficha limpa:
@@ -415,7 +498,3 @@ insert into apoiador_equipe (cpf, ano, equipeid) values
 -- teste de ficha limpa: este insert deve falhar:
 --INSERT INTO Candidato (CPF, numero, partido_sigla) VALUES
 --	('23456789012', 123, 'PD')
-		
-
-
-
