@@ -227,7 +227,7 @@ def show_dropdown(option):
             remove_data(table, conditions)
 
         execute_button = tk.Button(
-            option_frame, text="Execute Search", command=execute_date_search
+            option_frame, text="Execute Delete", command=execute_date_search
         )
         execute_button.pack(anchor="w")
 
