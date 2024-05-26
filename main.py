@@ -281,19 +281,21 @@ def display_results(columns, results):
 def query_ficha_limpa():
     try:
         cursor = conn.cursor()
-        query = """
-        SELECT i.nome, i.cpf, c.ano, cg.nome 
-        FROM individuo i
-        JOIN candidatura c ON i.cpf = c.cpf
-        JOIN cargo cg ON c.cargoid = cg.cargoid
-        WHERE c.procedente IS NULL
-        """
+
+        query = "SELECT i.nome, i.cpf FROM individuo i LEFT JOIN individuo_processos ip ON I.cpf = ip.cpf LEFT JOIN processojuridico p ON ip.processoid = p.processoid WHERE p.procedente = FALSE OR p.procedente IS NULL"
+
         print(f"Executing query: {query}")
+
         cursor.execute(query)
         results = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
+
+        print(f"Query Results: {results}")
+
         display_results(columns, results)
+
         cursor.close()
+
     except Exception as e:
         print(f"Error querying the database: {e}")
 
@@ -301,19 +303,22 @@ def query_ficha_limpa():
 def query_relatorio_candidatura():
     try:
         cursor = conn.cursor()
-        query = """
-        SELECT c.ano, cg.nome, COUNT(*) as total_candidatos
-        FROM candidatura c
-        JOIN cargo cg ON c.cargoid = cg.cargoid
-        GROUP BY c.ano, cg.nome
-        ORDER BY c.ano, cg.nome
-        """
+
+        query = "SELECT i.nome, i.cpf, carg.nome, i2.nome, i2.cpf , cand.eleito FROM candidatura cand LEFT JOIN individuo i ON cand.cpf = i.cpf JOIN cargo carg ON cand.cargoid = carg.cargoid LEFT JOIN individuo i2 ON cand.vice = i2.cpf"
+
         print(f"Executing query: {query}")
+
         cursor.execute(query)
         results = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
+
+        columns = ["nome", "cpf", "cargo", "vice", "vice cpf", "eleito"]
+
+        print(f"Query Results: {results}")
+        print(columns)
         display_results(columns, results)
+
         cursor.close()
+
     except Exception as e:
         print(f"Error querying the database: {e}")
 
