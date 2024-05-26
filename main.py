@@ -140,16 +140,94 @@ def show_dropdown(option):
             fields = fields_entry.get().split(",")
             values = values_entry.get().split(",")
 
+            conditions = " AND ".join(
+                [f"{field} = '{value}'" for field, value in zip(fields, values)]
+            )
+
             if operation == "remove":
-                remove_data(table, fields, values)
+                remove_data(table, conditions)
             elif operation == "list":
                 if all_data_var.get():
                     list_all_data(table)
                 else:
-                    list_data(table, fields, values)
+                    list_data(table, conditions)
 
         execute_button = tk.Button(
             option_frame, text="Execute", command=execute_operation
+        )
+        execute_button.pack(anchor="w")
+
+    elif option == "Busca por data":
+        # Entry fields for table name and date field
+        table_entry = tk.Entry(option_frame)
+        table_entry_label = tk.Label(option_frame, text="Enter table name:")
+        table_entry_label.pack(anchor="w")
+        table_entry.pack(anchor="w")
+
+        date_field_entry = tk.Entry(option_frame)
+        date_field_entry_label = tk.Label(option_frame, text="Enter date field:")
+        date_field_entry_label.pack(anchor="w")
+        date_field_entry.pack(anchor="w")
+
+        # Entry fields for initial and final dates
+        start_date_entry = tk.Entry(option_frame)
+        end_date_entry = tk.Entry(option_frame)
+        start_date_label = tk.Label(option_frame, text="Enter start date (YYYY-MM-DD):")
+        end_date_label = tk.Label(option_frame, text="Enter end date (YYYY-MM-DD):")
+        start_date_label.pack(anchor="w")
+        start_date_entry.pack(anchor="w")
+        end_date_label.pack(anchor="w")
+        end_date_entry.pack(anchor="w")
+
+        # Function to execute the date range search
+        def execute_date_search():
+            clear_results()
+            table = table_entry.get()
+            date_field = date_field_entry.get()
+            start_date = start_date_entry.get()
+            end_date = end_date_entry.get()
+            conditions = f"{date_field} BETWEEN '{start_date}' AND '{end_date}'"
+            list_data(table, conditions)
+
+        execute_button = tk.Button(
+            option_frame, text="Execute Search", command=execute_date_search
+        )
+        execute_button.pack(anchor="w")
+
+    elif option == "Remoção por data":
+        # Entry fields for table name and date field
+        table_entry = tk.Entry(option_frame)
+        table_entry_label = tk.Label(option_frame, text="Enter table name:")
+        table_entry_label.pack(anchor="w")
+        table_entry.pack(anchor="w")
+
+        date_field_entry = tk.Entry(option_frame)
+        date_field_entry_label = tk.Label(option_frame, text="Enter date field:")
+        date_field_entry_label.pack(anchor="w")
+        date_field_entry.pack(anchor="w")
+
+        # Entry fields for initial and final dates
+        start_date_entry = tk.Entry(option_frame)
+        end_date_entry = tk.Entry(option_frame)
+        start_date_label = tk.Label(option_frame, text="Enter start date (YYYY-MM-DD):")
+        end_date_label = tk.Label(option_frame, text="Enter end date (YYYY-MM-DD):")
+        start_date_label.pack(anchor="w")
+        start_date_entry.pack(anchor="w")
+        end_date_label.pack(anchor="w")
+        end_date_entry.pack(anchor="w")
+
+        # Function to execute the date range search
+        def execute_date_search():
+            clear_results()
+            table = table_entry.get()
+            date_field = date_field_entry.get()
+            start_date = start_date_entry.get()
+            end_date = end_date_entry.get()
+            conditions = f"{date_field} BETWEEN '{start_date}' AND '{end_date}'"
+            remove_data(table, conditions)
+
+        execute_button = tk.Button(
+            option_frame, text="Execute Search", command=execute_date_search
         )
         execute_button.pack(anchor="w")
 
@@ -199,61 +277,43 @@ def display_results(columns, results):
     v_scroll.pack(side="right", fill="y")
 
 
-# Function to query the database
-def sair():
+# Define database query functions
+def query_ficha_limpa():
     try:
-        # Close the database connection
-        if conn:
-            conn.close()
-            print("Database connection closed.")
+        cursor = conn.cursor()
+        query = """
+        SELECT i.nome, i.cpf, c.ano, cg.nome 
+        FROM individuo i
+        JOIN candidatura c ON i.cpf = c.cpf
+        JOIN cargo cg ON c.cargoid = cg.cargoid
+        WHERE c.procedente IS NULL
+        """
+        print(f"Executing query: {query}")
+        cursor.execute(query)
+        results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        display_results(columns, results)
+        cursor.close()
     except Exception as e:
-        print(f"Error closing the database connection: {e}")
-    finally:
-        # Close the application
-        app.quit()
+        print(f"Error querying the database: {e}")
 
 
 def query_relatorio_candidatura():
     try:
         cursor = conn.cursor()
-
-        query = "SELECT i.nome, i.cpf, carg.nome, i2.nome, i2.cpf , cand.eleito FROM candidatura cand LEFT JOIN individuo i ON cand.cpf = i.cpf JOIN cargo carg ON cand.cargoid = carg.cargoid LEFT JOIN individuo i2 ON cand.vice = i2.cpf"
-
+        query = """
+        SELECT c.ano, cg.nome, COUNT(*) as total_candidatos
+        FROM candidatura c
+        JOIN cargo cg ON c.cargoid = cg.cargoid
+        GROUP BY c.ano, cg.nome
+        ORDER BY c.ano, cg.nome
+        """
         print(f"Executing query: {query}")
-
-        cursor.execute(query)
-        results = cursor.fetchall()
-
-        columns = ["nome", "cpf", "cargo", "vice", "vice cpf", "eleito"]
-
-        print(f"Query Results: {results}")
-        print(columns)
-        display_results(columns, results)
-
-        cursor.close()
-
-    except Exception as e:
-        print(f"Error querying the database: {e}")
-
-
-def query_ficha_limpa():
-    try:
-        cursor = conn.cursor()
-
-        query = "SELECT i.nome, i.cpf FROM individuo i LEFT JOIN individuo_processos ip ON I.cpf = ip.cpf LEFT JOIN processojuridico p ON ip.processoid = p.processoid WHERE p.procedente = FALSE OR p.procedente IS NULL"
-
-        print(f"Executing query: {query}")
-
         cursor.execute(query)
         results = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
-
-        print(f"Query Results: {results}")
-
         display_results(columns, results)
-
         cursor.close()
-
     except Exception as e:
         print(f"Error querying the database: {e}")
 
@@ -261,9 +321,7 @@ def query_ficha_limpa():
 def query_candidaturas_variable(selections):
     try:
         cursor = conn.cursor()
-
         query = "SELECT i.nome, i.cpf, carg.nome, cand.ano FROM candidatura cand LEFT JOIN individuo i ON cand.cpf = i.cpf JOIN cargo carg ON cand.cargoid = carg.cargoid WHERE "
-
         conditions = []
         if "ano" in selections:
             conditions.append("cand.ano IN (%s)" % ",".join(selections["ano"]))
@@ -279,41 +337,26 @@ def query_candidaturas_variable(selections):
             )
 
         query += " AND ".join(conditions)
-
         print(f"Executing query: {query}")
-
         cursor.execute(query)
         results = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
-
+        columns = ["nome", "cpf", "cargo", "ano"]
         print(f"Query Results: {results}")
-
         display_results(columns, results)
-
         cursor.close()
-
     except Exception as e:
         print(f"Error querying the database: {e}")
 
 
-def remove_data(table, fields, values):
+def remove_data(table, conditions):
     try:
         cursor = conn.cursor()
-
-        conditions = " AND ".join(
-            [f"{field} = '{value}'" for field, value in zip(fields, values)]
-        )
         query = f"DELETE FROM {table} WHERE {conditions}"
-
         print(f"Executing query: {query}")
-
         cursor.execute(query)
         conn.commit()
-
         print(f"Removed data from {table} where {conditions}")
-
         cursor.close()
-
     except Exception as e:
         print(f"Error removing data from the database: {e}")
 
@@ -321,49 +364,44 @@ def remove_data(table, fields, values):
 def list_all_data(table):
     try:
         cursor = conn.cursor()
-
         query = f"SELECT * FROM {table}"
-
         print(f"Executing query: {query}")
-
         cursor.execute(query)
         results = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
-
         print(f"Query Results: {results}")
-
-        print(columns)
         display_results(columns, results)
-
         cursor.close()
-
     except Exception as e:
         print(f"Error listing all data from the database: {e}")
 
 
-def list_data(table, fields, values):
+def list_data(table, conditions):
     try:
         cursor = conn.cursor()
-
-        conditions = " AND ".join(
-            [f"{field} = '{value}'" for field, value in zip(fields, values)]
-        )
         query = f"SELECT * FROM {table} WHERE {conditions}"
-
         print(f"Executing query: {query}")
-
         cursor.execute(query)
         results = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
-
         print(f"Query Results: {results}")
-
         display_results(columns, results)
-
         cursor.close()
-
     except Exception as e:
         print(f"Error listing data from the database: {e}")
+
+
+def sair():
+    try:
+        # Close the database connection
+        if conn:
+            conn.close()
+            print("Database connection closed.")
+    except Exception as e:
+        print(f"Error closing the database connection: {e}")
+    finally:
+        # Close the application
+        app.quit()
 
 
 if __name__ == "__main__":
@@ -396,6 +434,12 @@ if __name__ == "__main__":
     )
     file_menu.add_command(
         label="Busca ou remoção", command=lambda: menu_selected("Busca ou remoção")
+    )
+    file_menu.add_command(
+        label="Busca por data", command=lambda: menu_selected("Busca por data")
+    )
+    file_menu.add_command(
+        label="Remoção por data", command=lambda: menu_selected("Remoção por data")
     )
     file_menu.add_command(label="Sair", command=lambda: menu_selected("Sair"))
 
