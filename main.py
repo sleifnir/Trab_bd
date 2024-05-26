@@ -4,8 +4,8 @@ import psycopg2
 
 # MODIFICA CONEXÃO PARA SEU BANCO
 conn = psycopg2.connect(
-    dbname="projeto",
-    user="admin",
+    dbname="postgres",
+    user="postgres",
     password="admin123",
     host="localhost",
     port="5432",
@@ -81,7 +81,7 @@ def show_dropdown(option):
             print(f"Selected options and values: {selections}")
 
             # Query the database with the selected options and values
-            query_database(selections)
+            query_candidaturas_variable(selections)
 
         save_button = tk.Button(
             option_frame,
@@ -91,14 +91,10 @@ def show_dropdown(option):
         save_button.pack(anchor="w")
 
     elif option == "Listar ficha limpa":
-        options = [f"{option}-{i}" for i in range(1, 4)]
-        selector = ttk.Combobox(option_frame, values=options)
-        selector.pack(side="left")
+        query_ficha_limpa()
 
     elif option == "Geração de relatórios":
-        options = [f"{option}-{i}" for i in range(1, 4)]
-        selector = ttk.Combobox(option_frame, values=options)
-        selector.pack(side="left")
+        query_relatorio_candidatura()
 
     elif option == "Busca ou remoção":
         # Add radio buttons for Remove or List options
@@ -117,8 +113,6 @@ def show_dropdown(option):
         table_entry_label = tk.Label(option_frame, text="Enter table name:")
         table_entry_label.pack(anchor="w")
         table_entry.pack(anchor="w")
-
-        # Checkbox for selecting all data
 
         fields_entry = tk.Entry(option_frame)
         fields_entry_label = tk.Label(option_frame, text="Enter fields:")
@@ -178,8 +172,31 @@ def toggle_fullscreen(event=None):
 
 # Function to clear previous results
 def clear_results():
-    for widget in result_frame.winfo_children():
+    for widget in result_frame_container.winfo_children():
         widget.destroy()
+
+
+# Function to display results in a Treeview
+def display_results(columns, results):
+    tree = ttk.Treeview(result_frame_container, columns=columns, show="headings")
+    for col in columns:
+        tree.heading(col, text=col)
+        tree.column(col, anchor=tk.W)
+    for row in results:
+        tree.insert("", tk.END, values=row)
+
+    tree.pack(side="left", fill=tk.BOTH, expand=True)
+
+    h_scroll = ttk.Scrollbar(
+        result_frame_container, orient="horizontal", command=tree.xview
+    )
+    v_scroll = ttk.Scrollbar(
+        result_frame_container, orient="vertical", command=tree.yview
+    )
+    tree.configure(xscrollcommand=h_scroll.set, yscrollcommand=v_scroll.set)
+
+    h_scroll.pack(side="bottom", fill="x")
+    v_scroll.pack(side="right", fill="y")
 
 
 # Function to query the database
@@ -196,24 +213,68 @@ def sair():
         app.quit()
 
 
-def query_database(selections):
+def query_relatorio_candidatura():
     try:
-        # Create a cursor object
         cursor = conn.cursor()
 
-        # Example query template
-        query = "SELECT * FROM your_table WHERE "
+        query = "SELECT i.nome, i.cpf, carg.nome, i2.nome, i2.cpf , cand.eleito FROM candidatura cand LEFT JOIN individuo i ON cand.cpf = i.cpf JOIN cargo carg ON cand.cargoid = carg.cargoid LEFT JOIN individuo i2 ON cand.vice = i2.cpf"
+
+        print(f"Executing query: {query}")
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        columns = ["nome", "cpf", "cargo", "vice", "vice cpf", "eleito"]
+
+        print(f"Query Results: {results}")
+        print(columns)
+        display_results(columns, results)
+
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+def query_ficha_limpa():
+    try:
+        cursor = conn.cursor()
+
+        query = "SELECT i.nome, i.cpf FROM individuo i LEFT JOIN individuo_processos ip ON I.cpf = ip.cpf LEFT JOIN processojuridico p ON ip.processoid = p.processoid WHERE p.procedente = FALSE OR p.procedente IS NULL"
+
+        print(f"Executing query: {query}")
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+
+        print(f"Query Results: {results}")
+
+        display_results(columns, results)
+
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+def query_candidaturas_variable(selections):
+    try:
+        cursor = conn.cursor()
+
+        query = "SELECT i.nome, i.cpf, carg.nome, cand.ano FROM candidatura cand LEFT JOIN individuo i ON cand.cpf = i.cpf JOIN cargo carg ON cand.cargoid = carg.cargoid WHERE "
 
         conditions = []
         if "ano" in selections:
-            conditions.append("ano IN (%s)" % ",".join(selections["ano"]))
+            conditions.append("cand.ano IN (%s)" % ",".join(selections["ano"]))
         if "nome" in selections:
             conditions.append(
-                "nome IN (%s)" % ",".join("'%s'" % name for name in selections["nome"])
+                "UPPER(i.nome) IN (UPPER(%s))"
+                % ",".join("'%s'" % name for name in selections["nome"])
             )
         if "cargo" in selections:
             conditions.append(
-                "cargo IN (%s)"
+                "UPPER(carg.nome) IN (UPPER(%s))"
                 % ",".join("'%s'" % cargo for cargo in selections["cargo"])
             )
 
@@ -221,24 +282,14 @@ def query_database(selections):
 
         print(f"Executing query: {query}")
 
-        # Execute the query
         cursor.execute(query)
-
-        # Fetch all results
         results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
 
-        # Print results to the console
         print(f"Query Results: {results}")
 
-        # Display results in the result frame
-        result_label = tk.Label(result_frame, text="Query Results:")
-        result_label.pack(anchor="w")
-        for row in results:
-            result_text = ", ".join(map(str, row))
-            result_label = tk.Label(result_frame, text=result_text)
-            result_label.pack(anchor="w")
+        display_results(columns, results)
 
-        # Close the cursor and connection
         cursor.close()
 
     except Exception as e:
@@ -247,27 +298,20 @@ def query_database(selections):
 
 def remove_data(table, fields, values):
     try:
-        # Create a cursor object
         cursor = conn.cursor()
 
-        # Construct the SQL statement
-        query = f"DELETE FROM {table} WHERE "
-        conditions = []
-        for field, value in zip(fields, values):
-            conditions.append(f"{field} = '{value}'")
-        query += " AND ".join(conditions)
+        conditions = " AND ".join(
+            [f"{field} = '{value}'" for field, value in zip(fields, values)]
+        )
+        query = f"DELETE FROM {table} WHERE {conditions}"
 
         print(f"Executing query: {query}")
 
-        # Execute the query
         cursor.execute(query)
-
-        # Commit the transaction
         conn.commit()
 
-        print("Data removed successfully.")
+        print(f"Removed data from {table} where {conditions}")
 
-        # Close the cursor
         cursor.close()
 
     except Exception as e:
@@ -276,74 +320,50 @@ def remove_data(table, fields, values):
 
 def list_all_data(table):
     try:
-        # Create a cursor object
         cursor = conn.cursor()
 
-        # Construct the SQL statement
         query = f"SELECT * FROM {table}"
 
         print(f"Executing query: {query}")
 
-        # Execute the query
         cursor.execute(query)
-
-        # Fetch all results
         results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
 
-        # Print results to the console
         print(f"Query Results: {results}")
 
-        # Display results in the result frame
-        result_label = tk.Label(result_frame, text="Query Results:")
-        result_label.pack(anchor="w")
-        for row in results:
-            result_text = ", ".join(map(str, row))
-            result_label = tk.Label(result_frame, text=result_text)
-            result_label.pack(anchor="w")
+        print(columns)
+        display_results(columns, results)
 
-        # Close the cursor
         cursor.close()
 
     except Exception as e:
-        print(f"Error querying the database: {e}")
+        print(f"Error listing all data from the database: {e}")
 
 
 def list_data(table, fields, values):
     try:
-        # Create a cursor object
         cursor = conn.cursor()
 
-        # Construct the SQL statement
-        query = f"SELECT * FROM {table} WHERE "
-        conditions = []
-        for field, value in zip(fields, values):
-            conditions.append(f"{field} = '{value}'")
-        query += " AND ".join(conditions)
+        conditions = " AND ".join(
+            [f"{field} = '{value}'" for field, value in zip(fields, values)]
+        )
+        query = f"SELECT * FROM {table} WHERE {conditions}"
 
         print(f"Executing query: {query}")
 
-        # Execute the query
         cursor.execute(query)
-
-        # Fetch all results
         results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
 
-        # Print results to the console
         print(f"Query Results: {results}")
 
-        # Display results in the result frame
-        result_label = tk.Label(result_frame, text="Query Results:")
-        result_label.pack(anchor="w")
-        for row in results:
-            result_text = ", ".join(map(str, row))
-            result_label = tk.Label(result_frame, text=result_text)
-            result_label.pack(anchor="w")
+        display_results(columns, results)
 
-        # Close the cursor and connection
         cursor.close()
 
     except Exception as e:
-        print(f"Error querying the database: {e}")
+        print(f"Error listing data from the database: {e}")
 
 
 if __name__ == "__main__":
@@ -385,11 +405,14 @@ if __name__ == "__main__":
 
     # Frame to show saved selections with scrollbar
     result_frame_container = tk.Frame(app)
-    result_frame_container.pack(pady=20)
+    result_frame_container.pack(pady=20, fill="both", expand=True)
 
     result_canvas = tk.Canvas(result_frame_container)
-    result_scrollbar = ttk.Scrollbar(
+    result_scrollbar_y = ttk.Scrollbar(
         result_frame_container, orient="vertical", command=result_canvas.yview
+    )
+    result_scrollbar_x = ttk.Scrollbar(
+        result_frame_container, orient="horizontal", command=result_canvas.xview
     )
     result_frame = tk.Frame(result_canvas)
 
@@ -399,10 +422,13 @@ if __name__ == "__main__":
     )
 
     result_canvas.create_window((0, 0), window=result_frame, anchor="nw")
-    result_canvas.configure(yscrollcommand=result_scrollbar.set)
+    result_canvas.configure(
+        yscrollcommand=result_scrollbar_y.set, xscrollcommand=result_scrollbar_x.set
+    )
 
     result_canvas.pack(side="left", fill="both", expand=True)
-    result_scrollbar.pack(side="right", fill="y")
+    result_scrollbar_y.pack(side="right", fill="y")
+    result_scrollbar_x.pack(side="bottom", fill="x")
 
     # Run the application
     app.mainloop()

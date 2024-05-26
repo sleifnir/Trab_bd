@@ -112,10 +112,30 @@ CREATE TABLE Candidatura(
 			ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE OR REPLACE FUNCTION check_election_votes()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.Eleito IS TRUE THEN
+        -- Verificar se o pleito correspondente tem votos
+        PERFORM 1 FROM Pleito WHERE PleitoID = NEW.PleitoID AND Votos IS NOT NULL;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Um candidato só pode ser eleito se o pleito correspondente tiver uma contagem de votos.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_election_votes
+BEFORE INSERT OR UPDATE ON Candidatura
+FOR EACH ROW
+EXECUTE FUNCTION check_election_votes();
+
+
 CREATE TABLE Empresa(
 	CNPJ VARCHAR(14),
 	Nome VARCHAR(128) NOT NULL,
-	
+
 	CONSTRAINT CK_Empresa_CNPJ CHECK (length(CNPJ) >= 14),
 	CONSTRAINT PK_Empresa PRIMARY KEY (CNPJ),
 	CONSTRAINT UN_Empresa UNIQUE (Nome)
@@ -140,7 +160,7 @@ CREATE TABLE DoacaoDeCampanha(
 	CandidaturaID SERIAL,
 	DataDoacao DATE,
 	Valor DECIMAL(12,2) NOT NULL,
-	
+
 	CONSTRAINT PK_DoacaoDeCampanha PRIMARY KEY (CPF, CandidaturaID, DataDoacao),
 	CONSTRAINT FK_DoacaoDeCampanha_CPF FOREIGN KEY (CPF)
 		REFERENCES Individuo(CPF)
@@ -149,6 +169,67 @@ CREATE TABLE DoacaoDeCampanha(
 		REFERENCES Candidatura(CandidaturaID)
 			ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+
+create table EquipeDeApoio(
+	EquipeID SERIAL,
+	ANO SMALLINT NOT NULL,
+	qntMembros SMALLINT NOT NULL,
+	CandidaturaID SERIAL not NULL,
+
+	CONSTRAINT PK_EquipeID PRIMARY KEY (EquipeID),
+	CONSTRAINT FK_EquipeDeApoio_CandidaturaID FOREIGN KEY (CandidaturaID)
+		REFERENCES Candidatura(CandidaturaID)
+			ON DELETE CASCADE ON UPDATE CASCADE
+
+);
+
+--A equipe precisa ser criada com um membro?? como garantir qual membro?
+/*
+CREATE OR REPLACE FUNCTION check_equipe_membros() RETURNS TRIGGER AS $$
+BEGIN
+    IF (SELECT COUNT(*) FROM Apoiador_Equipe WHERE EquipeID = NEW.EquipeID) < 1 THEN
+        RAISE EXCEPTION 'A EquipeDeApoio deve ser composta por vários indivíduos.';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER equipe_membros_trigger
+AFTER INSERT OR UPDATE ON Apoiador_Equipe
+FOR EACH ROW EXECUTE PROCEDURE check_equipe_membros();
+*/
+
+
+
+create table Apoiador_Equipe(
+	CPF VARCHAR(11),
+	ANO SMALLINT NOT NULL,
+	EquipeID SERIAL,
+
+	CONSTRAINT PK_Apoiador_Equipe PRIMARY KEY (CPF, ANO),
+	CONSTRAINT FK_Apoiador_Equipe_CPF FOREIGN KEY (CPF)
+		REFERENCES Individuo(CPF)
+			ON DELETE CASCADE ON UPDATE CASCADE,
+	CONSTRAINT FK_Apoiador_Equipe_EquipeID FOREIGN KEY (EquipeID)
+		REFERENCES EquipeDeApoio(EquipeID)
+			ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+CREATE OR REPLACE FUNCTION update_qntmembros() RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE EquipeDeApoio
+    SET qntMembros = (SELECT COUNT(*) FROM Apoiador_Equipe WHERE EquipeID = NEW.EquipeID)
+    WHERE EquipeID = NEW.EquipeID;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_qntmembros_trigger
+AFTER INSERT ON Apoiador_Equipe
+FOR EACH ROW EXECUTE PROCEDURE update_qntmembros();
+
 
 
 
