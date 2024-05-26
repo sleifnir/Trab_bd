@@ -113,6 +113,9 @@ def show_dropdown(option):
     elif option == "Listar ficha limpa":
         query_ficha_limpa()
 
+    elif option == "Listar ficha suja":
+        query_ficha_suja()
+
     elif option == "Geração de relatórios":
         query_relatorio_candidatura()
 
@@ -320,6 +323,29 @@ def query_ficha_limpa():
         print(f"Error querying the database: {e}")
 
 
+# Define database query functions
+def query_ficha_suja():
+    try:
+        cursor = conn.cursor()
+
+        query = "SELECT i.nome,i.cpf,i.rg,i.datanasc,p.processoid FROM individuo i LEFT JOIN individuo_processos ip ON I.cpf = ip.cpf LEFT JOIN processojuridico p ON ip.processoid = p.processoid WHERE p.procedente = TRUE"
+
+        print(f"Executing query: {query}")
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+
+        print(f"Query Results: {results}")
+
+        display_results(columns, results)
+
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
 def query_relatorio_candidatura():
     try:
         cursor = conn.cursor()
@@ -466,6 +492,9 @@ if __name__ == "__main__":
     )
     file_menu.add_command(
         label="Listar ficha limpa", command=lambda: menu_selected("Listar ficha limpa")
+    )
+    file_menu.add_command(
+        label="Listar ficha suja", command=lambda: menu_selected("Listar ficha suja")
     )
     file_menu.add_command(
         label="Busca ou remoção", command=lambda: menu_selected("Busca ou remoção")
