@@ -4,9 +4,9 @@ import psycopg2
 
 # MODIFICA CONEXÃO PARA SEU BANCO
 conn = psycopg2.connect(
-    dbname="projeto",
-    user="admin",
-    password="admin123",
+    dbname="postgres",
+    user="postgres",
+    password="124578",
     host="localhost",
     port="5432",
 )
@@ -81,7 +81,7 @@ def show_dropdown(option):
             print(f"Selected options and values: {selections}")
 
             # Query the database with the selected options and values
-            query_database(selections)
+            query_candidaturas_variable(selections)
 
         save_button = tk.Button(
             option_frame,
@@ -91,14 +91,16 @@ def show_dropdown(option):
         save_button.pack(anchor="w")
 
     elif option == "Listar ficha limpa":
-        options = [f"{option}-{i}" for i in range(1, 4)]
-        selector = ttk.Combobox(option_frame, values=options)
-        selector.pack(side="left")
+        query_ficha_limpa()
+        #options = [f"{option}-{i}" for i in range(1, 4)]
+        #selector = ttk.Combobox(option_frame, values=options)
+        #selector.pack(side="left")
 
     elif option == "Geração de relatórios":
-        options = [f"{option}-{i}" for i in range(1, 4)]
-        selector = ttk.Combobox(option_frame, values=options)
-        selector.pack(side="left")
+        query_relatorio_candidatura()
+        #options = [f"{option}-{i}" for i in range(1, 4)]
+        #selector = ttk.Combobox(option_frame, values=options)
+        #selector.pack(side="left")
 
     elif option == "Busca ou remoção":
         # Add radio buttons for Remove or List options
@@ -196,24 +198,92 @@ def sair():
         app.quit()
 
 
-def query_database(selections):
+def query_relatorio_candidatura():
+    try:
+        # Create a cursor object
+        cursor = conn.cursor()
+
+        #query para encontrar fichalimpa
+        query = "select i.nome, i.cpf, carg.nome, i2.nome, i2.cpf , cand.eleito  from candidatura cand left join individuo i on cand.cpf = i.cpf join cargo carg on cand.cargoid = carg.cargoid left join individuo i2 ON cand.vice = i2.cpf"
+
+        print(f"Executing query: {query}")
+
+        # Execute the query
+        cursor.execute(query)
+
+        # Fetch all results
+        results = cursor.fetchall()
+
+        # Print results to the console
+        print(f"Query Results: {results}")
+
+        # Display results in the result frame
+        result_label = tk.Label(result_frame, text="Query Results:")
+        result_label.pack(anchor="w")
+        for row in results:
+            result_text = ", ".join(map(str, row))
+            result_label = tk.Label(result_frame, text=result_text)
+            result_label.pack(anchor="w")
+
+        # Close the cursor and connection
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+def query_ficha_limpa():
+    try:
+        # Create a cursor object
+        cursor = conn.cursor()
+
+        #query para encontrar fichalimpa
+        query = "SELECT i.nome, i.cpf FROM individuo i LEFT JOIN individuo_processos ip ON I.cpf = ip.cpf LEFT JOIN processojuridico p ON ip.processoid = p.processoid WHERE p.procedente = FALSE OR p.procedente IS NULL"
+
+        print(f"Executing query: {query}")
+
+        # Execute the query
+        cursor.execute(query)
+
+        # Fetch all results
+        results = cursor.fetchall()
+
+        # Print results to the console
+        print(f"Query Results: {results}")
+
+        # Display results in the result frame
+        result_label = tk.Label(result_frame, text="Query Results:")
+        result_label.pack(anchor="w")
+        for row in results:
+            result_text = ", ".join(map(str, row))
+            result_label = tk.Label(result_frame, text=result_text)
+            result_label.pack(anchor="w")
+
+        # Close the cursor and connection
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+def query_candidaturas_variable(selections):
     try:
         # Create a cursor object
         cursor = conn.cursor()
 
         # Example query template
-        query = "SELECT * FROM your_table WHERE "
+        query = "select i.nome, i.cpf, carg.nome , cand.ano  from candidatura cand left join individuo i on cand.cpf = i.cpf join cargo carg on cand.cargoid = carg.cargoid where "
 
         conditions = []
         if "ano" in selections:
-            conditions.append("ano IN (%s)" % ",".join(selections["ano"]))
+            conditions.append("cand.ano IN (%s)" % ",".join(selections["ano"]))
         if "nome" in selections:
             conditions.append(
-                "nome IN (%s)" % ",".join("'%s'" % name for name in selections["nome"])
+                "UPPER(cand.nome) IN (UPPER(%s))" % ",".join("'%s'" % name for name in selections["nome"])
             )
         if "cargo" in selections:
             conditions.append(
-                "cargo IN (%s)"
+                "UPPER(carg.nome) IN (UPPER(%s))"
                 % ",".join("'%s'" % cargo for cargo in selections["cargo"])
             )
 

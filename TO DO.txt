@@ -1,9 +1,11 @@
 TO-DO:
 
 Implementar essas restrições:
-- se na candidatura o candidato foi eleito, o pleito já deve ter sido realizado ou seja, já deve ter a contagem de votos.
 - na tabela pleito, se o pleito é de uma data anterior à data de hoje, os numeros de votos não devem ser nulos.
 
 Implementar esses triggers:
 - Trigger para garantir que a equipe de apoio seja composta por diversos individuos
-- Trigger para atualizar o atributo "qntMembros" em EquipeDeApoio
+
+
+Código python:
+-implementar tratamento de execões para o código continuar após uma transação não realizada corretamente
