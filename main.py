@@ -42,6 +42,23 @@ def show_dropdown(option):
             entry_frame.pack(anchor="w", padx=20)
             entry_vars[suboption].append(entry_frame)
 
+        # Create checkboxes for sorting
+        sort_options = ["ano", "nome", "cargo"]
+        sort_var = tk.StringVar()
+        sort_var.set("ano")  # Default sorting option
+
+        sort_label = tk.Label(option_frame, text="Sort by:")
+        sort_label.pack(anchor="w")
+
+        for sort_option in sort_options:
+            radio_button = tk.Radiobutton(
+                option_frame,
+                text=sort_option.capitalize(),
+                variable=sort_var,
+                value=sort_option,
+            )
+            radio_button.pack(anchor="w")
+
         # Function to toggle entry fields
         def toggle_entry(suboption):
             if check_vars[suboption].get():
@@ -76,6 +93,9 @@ def show_dropdown(option):
                                     value.strip() for value in widget.get().split(",")
                                 ]
                     selections[suboption] = values
+
+            # Add the selected sorting option
+            selections["sort_by"] = sort_var.get()
 
             # Print selections to terminal
             print(f"Selected options and values: {selections}")
@@ -342,6 +362,16 @@ def query_candidaturas_variable(selections):
             )
 
         query += " AND ".join(conditions)
+
+        # Add sorting option
+        if "sort_by" in selections:
+            if "nome" in selections["sort_by"]:
+                query += f" ORDER BY i.nome"
+            elif "cargo" in selections["sort_by"]:
+                query += f" ORDER BY carg.nome"
+            else:
+                query += f" ORDER BY ano"
+
         print(f"Executing query: {query}")
         cursor.execute(query)
         results = cursor.fetchall()
