@@ -254,6 +254,43 @@ def show_dropdown(option):
         )
         execute_button.pack(anchor="w")
 
+    elif option == "Lista equipe de apoio":
+        # Display the description text
+        label = tk.Label(
+            option_frame,
+            text=(
+                "Exibe o nome e CPF dos apoiadores de cada equipe de apoio, o id, ano e quantidade de membros da equipe, "
+                "nome e cargo do candidato que está sendo apoiado."
+            ),
+            wraplength=500,  # Adjust wraplength as needed for better text wrapping
+        )
+        label.pack(anchor="w", pady=10)
+        equipe_apoiadores_campanha()
+
+    elif option == "Lista empresas apoiadoras":
+        # Display the description text
+        label = tk.Label(
+            option_frame,
+            text=(
+                "Nome e CPNJ de todas as empresas que fizeram uma doação para qualquer candidatura, nome, CPF e nome do cargo do candidato, valor e ano da doação, numero e sigla do partido, se o candidato foi eleito e o número de votos. Ordenado de forma descrescente pelo valor da doação"
+            ),
+            wraplength=500,  # Adjust wraplength as needed for better text wrapping
+        )
+        label.pack(anchor="w", pady=10)
+        empresas_apoiadoras()
+
+    elif option == "Lista doadores":
+        # Display the description text
+        label = tk.Label(
+            option_frame,
+            text=(
+                "Exibe nome e CPF dos individuos que fizeram doação de campanha, valor e data da doação, candidatura à qual fizeram a doação e CPF do candidato"
+            ),
+            wraplength=500,  # Adjust wraplength as needed for better text wrapping
+        )
+        label.pack(anchor="w", pady=10)
+        doadores_campanha()
+    #
     elif option == "Sair":
         sair()
 
@@ -329,6 +366,80 @@ def query_ficha_suja():
         cursor = conn.cursor()
 
         query = "SELECT i.nome,i.cpf,i.rg,i.datanasc,p.processoid FROM individuo i LEFT JOIN individuo_processos ip ON I.cpf = ip.cpf LEFT JOIN processojuridico p ON ip.processoid = p.processoid WHERE p.procedente = TRUE"
+
+        print(f"Executing query: {query}")
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+
+        print(f"Query Results: {results}")
+
+        display_results(columns, results)
+
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+def equipe_apoiadores_campanha():
+    try:
+        cursor = conn.cursor()
+
+        query = "SELECT i.nome, i.cpf, e.equipeid, e.ano, e.qntmembros, i2.nome, c2.nome FROM apoiador_equipe ae JOIN equipedeapoio e ON ae.equipeid = e.equipeid JOIN individuo i ON ae.cpf = i.cpf JOIN candidatura c ON c.candidaturaid = e.candidaturaid JOIN individuo i2 ON c.cpf = i2.cpf JOIN cargo c2 ON c.cargoid = c2.cargoid ORDER BY e.equipeid"
+
+        print(f"Executing query: {query}")
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+        columns = [
+            "nome apoiador",
+            "cpf",
+            "equipeid",
+            "ano",
+            "quantidade membros",
+            "candidato apoiado",
+            "cargo",
+        ]
+
+        print(f"Query Results: {results}")
+
+        display_results(columns, results)
+
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+def empresas_apoiadoras():
+    try:
+        cursor = conn.cursor()
+
+        query = "SELECT e.*, ed.valor, c.ano, i.nome AS Candidato_nome, c3.nome AS Cargo_Nome, c3.referencia AS Cargo_referencia, c.cpf AS Candidato_CPF, c2.numero, c2.partido_sigla, p2.nome AS Partido_Nome, c.eleito, p.votos AS Quantidade_Votos FROM empresa_doacao ed JOIN candidatura c ON ed.candidaturaid = c.candidaturaid JOIN empresa e ON e.cnpj = ed.cnpj JOIN candidato c2 ON c2.cpf = c.cpf JOIN individuo i ON i.cpf = c2.cpf JOIN pleito p ON c.pleitoid = p.pleitoid JOIN partido p2 ON c2.partido_sigla = p2.sigla JOIN cargo c3 ON c3.cargoid = c.cargoid ORDER BY valor DESC "
+
+        print(f"Executing query: {query}")
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+
+        print(f"Query Results: {results}")
+
+        display_results(columns, results)
+
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error querying the database: {e}")
+
+
+def doadores_campanha():
+    try:
+        cursor = conn.cursor()
+
+        query = "SELECT i.nome, i.cpf, d.valor, d.datadoacao, i2.nome AS Candidato_Nome, i2.cpf AS Candidato_CPF,  c2.partido_sigla AS Candidato_Partido FROM doacaodecampanha d JOIN individuo i ON d.cpf = i.cpf JOIN candidatura c ON c.candidaturaid = d.candidaturaid JOIN candidato c2 ON c.cpf = c2.cpf JOIN individuo i2 ON c2.cpf = i2.cpf ORDER BY i.nome"
 
         print(f"Executing query: {query}")
 
@@ -505,6 +616,22 @@ if __name__ == "__main__":
     file_menu.add_command(
         label="Remoção por data", command=lambda: menu_selected("Remoção por data")
     )
+    file_menu.add_command(
+        label="Lista equipe de apoio",
+        command=lambda: menu_selected("Lista equipe de apoio"),
+    )
+
+    file_menu.add_command(
+        label="Lista empresas apoiadoras",
+        command=lambda: menu_selected("Lista empresas apoiadoras"),
+    )
+    # Lista doadores
+
+    file_menu.add_command(
+        label="Lista doadores",
+        command=lambda: menu_selected("Lista doadores"),
+    )
+
     file_menu.add_command(label="Sair", command=lambda: menu_selected("Sair"))
 
     # Frame to show dropdown options
